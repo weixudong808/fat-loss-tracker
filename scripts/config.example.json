@@ -1,0 +1,12 @@
+{
+  "_说明": "复制本文件为 config.json。首次使用直接运行 python3 init_sheet.py 会自动建表并生成本文件，无需手填。",
+  "spreadsheet_token": "",
+  "spreadsheet_url": "",
+  "sheet_ids": {
+    "训练记录": "",
+    "体重记录": "",
+    "饮食记录": "",
+    "用户档案": ""
+  },
+  "cron_job_ids": {}
+}
