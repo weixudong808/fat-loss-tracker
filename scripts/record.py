@@ -89,7 +89,8 @@ def record_training(config, args):
             "date": date,
             "theme": theme,
             "count": len(rows),
-            "exercises": [ex.get("name") for ex in exercises]
+            "exercises": [ex.get("name") for ex in exercises],
+            "sheet_url": config["spreadsheet_url"]
         }
         if not getattr(args, "no_plan", False):
             resp["plan_link"] = link_training_plan(config, date, theme, exercises)
@@ -171,7 +172,8 @@ def record_weight(config, args):
             "type": "weight",
             "date": date,
             "weight": args.weight,
-            "body_fat": args.body_fat
+            "body_fat": args.body_fat,
+            "sheet_url": config["spreadsheet_url"]
         }
         if not getattr(args, "no_link", False):
             resp["profile_link"] = link_weight(config, args.weight, args.body_fat)
@@ -216,7 +218,8 @@ def record_diet(config, args):
             "type": "diet",
             "date": date,
             "meal": meal,
-            "content": args.content
+            "content": args.content,
+            "sheet_url": config["spreadsheet_url"]
         }
     return result
 
