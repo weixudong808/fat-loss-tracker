@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""个人健身数据录入脚本 - 统一处理训练、体重、饮食记录（电子表格版）。
+"""个人健身数据录入脚本 - 统一处理训练、体重、饮食记录（存储后端无关：本地 xlsx / 飞书表格）。
 用法:
   # 训练记录
   python3 record.py training --date 2026-08-28 --theme 有氧 --exercises '[{"name":"深蹲","sets":4,"reps":12,"weight":60,"notes":"备注"}]'
@@ -7,56 +7,18 @@
   python3 record.py weight --date 2026-08-28 --weight 75.5 --body-fat 18.2
   # 饮食记录
   python3 record.py diet --date 2026-08-28 --meal 午餐 --content "米饭+红烧排骨+青菜"
-配置: 同目录下 config.json，包含 spreadsheet_url 和 sheet_ids
+配置: 同目录下 config.json（后端由 fitlib.load_config 自动探测/初始化）
 """
 import argparse
 import json
-import os
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+
 SCRIPT_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = SCRIPT_DIR / "config.json"
 sys.path.insert(0, str(SCRIPT_DIR))
 import fitlib as fl  # noqa: E402
 
-def load_config():
-    """加载配置文件。"""
-    if not CONFIG_PATH.exists():
-        print(json.dumps({"ok": False, "error": f"配置文件不存在: {CONFIG_PATH}，请先创建 config.json"}, ensure_ascii=False))
-        sys.exit(1)
-    with open(CONFIG_PATH, encoding="utf-8") as f:
-        return json.load(f)
-
-def run_lark_sheets(args, stdin_data=None):
-    """执行 lark-cli sheets 命令并返回解析后的 JSON。"""
-    cmd = ["lark-cli", "sheets"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True, input=stdin_data, timeout=30)
-    if result.returncode != 0:
-        return {"ok": False, "error": result.stderr.strip() or result.stdout.strip()}
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {"ok": False, "error": "无法解析 lark-cli 输出", "raw": result.stdout[:500]}
-
-def append_rows(config, sheet_name, columns, dtypes, formats, rows):
-    """向指定子表追加数据行（mode=append，不重复写表头）。"""
-    payload = {
-        "sheets": [{
-            "name": sheet_name,
-            "mode": "append",
-            "header": False,
-            "columns": columns,
-            "dtypes": dtypes,
-            "formats": formats,
-            "data": rows,
-        }]
-    }
-    return run_lark_sheets(
-        ["+table-put", "--url", config["spreadsheet_url"], "--sheets", "-"],
-        stdin_data=json.dumps(payload, ensure_ascii=False),
-    )
 
 def record_training(config, args):
     """录入训练记录。"""
@@ -75,7 +37,7 @@ def record_training(config, args):
             ex.get("notes", ""),
             "已完成",
         ])
-    result = append_rows(
+    result = fl.append_rows(
         config, "训练记录",
         fl.TRAIN_COLS,
         {"日期": "datetime64[ns]", "组数": "float64", "次数": "float64", "重量kg": "float64"},
@@ -90,8 +52,8 @@ def record_training(config, args):
             "theme": theme,
             "count": len(rows),
             "exercises": [ex.get("name") for ex in exercises],
-            "sheet_url": config["spreadsheet_url"]
         }
+        resp.update(fl.storage_info(config))
         if not getattr(args, "no_plan", False):
             resp["plan_link"] = link_training_plan(config, date, theme, exercises)
         return resp
@@ -135,7 +97,7 @@ def link_training_plan(config, date, theme, exercises):
                 progressed.append({"name": ex.get("name", ""), "sets": sets,
                                    "reps": reps, "weight": w,
                                    "from": f"{ex.get('weight',0)}kg×{ex.get('reps',10)}次"})
-            wres = append_rows(
+            wres = fl.append_rows(
                 config, "训练记录", fl.TRAIN_COLS,
                 {"日期": "datetime64[ns]", "组数": "float64",
                  "次数": "float64", "重量kg": "float64"},
@@ -150,6 +112,7 @@ def link_training_plan(config, date, theme, exercises):
         info["link_error"] = str(e)
     return info
 
+
 def record_weight(config, args):
     """录入体重记录。"""
     date = args.date or datetime.now().strftime("%Y-%m-%d")
@@ -159,9 +122,9 @@ def record_weight(config, args):
     else:
         row.append(None)
     row.append(args.notes or "")
-    result = append_rows(
+    result = fl.append_rows(
         config, "体重记录",
-        ["日期", "体重kg", "体脂率%", "备注"],
+        fl.WEIGHT_COLS,
         {"日期": "datetime64[ns]", "体重kg": "float64", "体脂率%": "float64"},
         {"日期": "yyyy-mm-dd"},
         [row],
@@ -173,8 +136,8 @@ def record_weight(config, args):
             "date": date,
             "weight": args.weight,
             "body_fat": args.body_fat,
-            "sheet_url": config["spreadsheet_url"]
         }
+        resp.update(fl.storage_info(config))
         if not getattr(args, "no_link", False):
             resp["profile_link"] = link_weight(config, args.weight, args.body_fat)
         return resp
@@ -200,28 +163,31 @@ def link_weight(config, weight, body_fat):
         info["link_error"] = str(e)
     return info
 
+
 def record_diet(config, args):
     """录入饮食记录。"""
     date = args.date or datetime.now().strftime("%Y-%m-%d")
     meal = args.meal or infer_meal()
     row = [date, meal, args.content, args.notes or ""]
-    result = append_rows(
+    result = fl.append_rows(
         config, "饮食记录",
-        ["日期", "餐次", "食物内容", "备注"],
+        fl.DIET_COLS,
         {"日期": "datetime64[ns]"},
         {"日期": "yyyy-mm-dd"},
         [row],
     )
     if result.get("ok"):
-        return {
+        resp = {
             "ok": True,
             "type": "diet",
             "date": date,
             "meal": meal,
             "content": args.content,
-            "sheet_url": config["spreadsheet_url"]
         }
+        resp.update(fl.storage_info(config))
+        return resp
     return result
+
 
 def infer_theme(exercises):
     """根据动作推断训练主题。"""
@@ -241,6 +207,7 @@ def infer_theme(exercises):
                 return theme
     return "全身"
 
+
 def infer_meal():
     """根据当前时间推断餐次。"""
     hour = datetime.now().hour
@@ -253,8 +220,9 @@ def infer_meal():
     else:
         return "晚餐"
 
+
 def main():
-    parser = argparse.ArgumentParser(description="个人健身数据录入（电子表格版）")
+    parser = argparse.ArgumentParser(description="个人健身数据录入（存储后端无关）")
     subparsers = parser.add_subparsers(dest="type", required=True)
     # 训练
     p_train = subparsers.add_parser("training", help="录入训练记录")
@@ -276,7 +244,7 @@ def main():
     p_diet.add_argument("--content", required=True, help="食物内容描述")
     p_diet.add_argument("--notes", help="备注")
     args = parser.parse_args()
-    config = load_config()
+    config = fl.load_config()
     if args.type == "training":
         result = record_training(config, args)
     elif args.type == "weight":
@@ -287,6 +255,7 @@ def main():
         result = {"ok": False, "error": f"未知类型: {args.type}"}
     print(json.dumps(result, ensure_ascii=False, indent=2))
     sys.exit(0 if result.get("ok") else 1)
+
 
 if __name__ == "__main__":
     main()

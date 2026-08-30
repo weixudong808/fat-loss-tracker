@@ -1,6 +1,7 @@
 {
-  "_说明": "复制本文件为 config.json。首次使用直接运行 python3 init_sheet.py 会自动建表并生成本文件，无需手填。",
-  "spreadsheet_token": "",
+  "_说明": "复制本文件为 config.json。首次使用无需手填：运行任意脚本时 fitlib.load_config() 会自动探测存储后端（本地 xlsx 优先，飞书兜底）并初始化。老用户已有 spreadsheet_url 则直接走飞书。",
+  "backend": "",
+  "local_path": "",
   "spreadsheet_url": "",
   "sheet_ids": {
     "训练记录": "",
