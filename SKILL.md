@@ -126,3 +126,20 @@ Prompt 全文见 `references/cron_prompts.md`：
 | scripts/fitlib.py | 公共库，不直接执行业务 |
 
 所有脚本输出 JSON，`ok:false` 如实报错，不假装成功。
+
+## 9. 推送更新到 GitHub
+
+代码仓库：https://github.com/weixudong808/fat-loss-tracker
+
+**新 session 推送流程**（每个 session 是独立云电脑，workspace 不共享，需重新 clone）：
+1. `git clone https://github.com/weixudong808/fat-loss-tracker.git`
+2. 在 clone 的目录里改代码
+3. 提交推送：
+```bash
+git add -A
+git commit -m "描述改动"
+git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-tracker.git main
+```
+4. Token 获取：https://github.com/settings/tokens?type=beta → Fine-grained → 选 fat-loss-tracker → Contents 权限 Read and write
+
+详细步骤见同目录 `PUSH.md`。用户说"推一下/推送更新"时按此执行。
