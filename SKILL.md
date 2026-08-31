@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.1.3
+  version: 2.1.4
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -13,7 +13,7 @@ metadata:
 
 ## 存储后端（自动选择，不问用户）
 
-- **local（默认优先）**：openpyxl 可用且目录可写时，首次运行任意脚本自动在**技能目录旁**的 `减脂数据/减脂追踪数据.xlsx` 建好工作簿（4 张表+表头）——数据不进技能包：千问注册审核禁包内二进制、更新技能删目录也不碰数据；零安装零授权；文件绝对路径写进 config.json
+- **local（默认优先）**：openpyxl 可用且目录可写时，首次运行任意脚本自动在**工作区**的 `减脂数据/减脂追踪数据.xlsx` 建好工作簿（4 张表+表头）——数据不进技能包：千问注册审核禁包内二进制、更新技能删目录也不碰数据；零安装零授权；文件绝对路径写进 config.json
 - **feishu（兜底）**：config.json 已有 `spreadsheet_url` 的老用户直接走飞书，行为不变；本地不可用且装了 lark-cli 时，按脚本报错提示补配置
 - 查当前后端/数据位置：`python3 scripts/storage.py info`；只探测环境不改动：`python3 scripts/bootstrap.py status`
 - 用户说"发表格给我/导出"：feishu 后端给表格链接，local 后端把最新 xlsx 作为附件发出
@@ -212,10 +212,12 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
 
 ## 10. 千问：装进「自定义技能」（用户要求时执行）
 
+**安装/更新（两平台通用）**：`git clone --depth 1`（云电脑完整 clone 常因传输中断失败）→ 复制 fat-loss-tracker 到技能目录 → **删掉 clone 带来的 `.git` 文件夹**（千问把 .git 算进技能包，其中二进制 pack 文件会触发注册审核拒绝；更新=重新 clone，用不到 .git）。
+
 技能放 workspace/skills/ 后所有对话已可用（自动发现）。用户想在千问 App「自定义技能」界面看到它，需正式注册。规则与顺序（严格按序，每步完成再做下一步）：
 
 1. **技能包内禁止任何二进制文件**——xlsx 和 `__pycache__/*.pyc` 都会被安全审核拒绝（"不可审查的可执行文件"）。注册前检查：
-   - v2.1.3 起数据默认建在技能目录外（`减脂数据/`），包内正常无 xlsx；若发现包内 `data/` 有 xlsx（老版本安装的），移到技能目录外并改 `scripts/config.json` 的 `local_path` 为新绝对路径，跑 `python3 -B scripts/profile.py get` 验证档案还在
+   - v2.1.4 起数据默认建在工作区 `减脂数据/`（技能目录外），包内正常无 xlsx；若发现包内 `data/` 有 xlsx（老版本安装的），移到技能目录外并改 `scripts/config.json` 的 `local_path` 为新绝对路径，跑 `python3 -B scripts/profile.py get` 验证档案还在
    - `rm -rf scripts/__pycache__`
 2. **验证/演示脚本一律加 `-B`**（如 `python3 -B scripts/profile.py get`），不生成缓存；清完缓存后不要再跑任何不带 -B 的脚本
 3. 查技能状态确认清单干净（无 xlsx/pyc）→ 发起安全审核 → **立即提交**：审核令牌有时效（过期报 safety_review_expired）；审核后再改文件会 revision_conflict（需重查状态拿新版本号、重新审核再提交）
