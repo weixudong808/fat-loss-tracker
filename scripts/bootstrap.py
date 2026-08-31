@@ -35,9 +35,9 @@ def cmd_status(args):
 
 
 def cmd_init(args):
-    # 从磁盘读原始 config（不触发自动探测）
+    # 从磁盘读原始 config（不存在则自动落空模板，不挡首次初始化）
     if not fl.CONFIG_PATH.exists():
-        fl.out({"ok": False, "error": f"配置文件不存在: {fl.CONFIG_PATH}"})
+        fl.save_config(json.loads(json.dumps(fl.DEFAULT_CONFIG)))
     config = json.loads(fl.CONFIG_PATH.read_text(encoding="utf-8"))
     if args.backend == "local":
         config = fl.bootstrap_local(config, args.path)
