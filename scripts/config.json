@@ -1,0 +1,12 @@
+{
+  "backend": "",
+  "local_path": "",
+  "spreadsheet_url": "",
+  "sheet_ids": {
+    "训练记录": "",
+    "体重记录": "",
+    "饮食记录": "",
+    "用户档案": ""
+  },
+  "cron_job_ids": {}
+}
