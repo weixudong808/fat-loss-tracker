@@ -40,6 +40,13 @@ def cmd_init(config, args):
              "existing": existing})
     fields = json.loads(args.data)
     fields.setdefault("创建日期", today_str())
+    # 用户没自备营养素时，建档即按档位自动算好，省去二次跑 macros
+    if all(fields.get(k) in (None, "") for k in ("碳水g", "蛋白g", "脂肪g")):
+        tier = fields.get("当前档位kg")
+        days = fields.get("每周训练天数")
+        if tier and days:
+            m = calc_macros(float(tier), int(days))
+            fields.update({"碳水g": m["carb_g"], "蛋白g": m["protein_g"], "脂肪g": m["fat_g"]})
     r = upsert_profile(config, fields)
     if r.get("ok"):
         r["action"] = "init"
