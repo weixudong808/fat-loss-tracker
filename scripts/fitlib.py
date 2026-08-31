@@ -22,6 +22,15 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 CONFIG_PATH = SCRIPT_DIR / "config.json"
+
+# 全新环境的空配置模板：backend 留空 → ensure_backend 自动探测（本地 xlsx 优先）
+DEFAULT_CONFIG = {
+    "backend": "",
+    "local_path": "",
+    "spreadsheet_url": "",
+    "sheet_ids": {"训练记录": "", "体重记录": "", "饮食记录": "", "用户档案": ""},
+    "cron_job_ids": {},
+}
 DEFAULT_XLSX = SKILL_DIR / "data" / "减脂追踪数据.xlsx"
 
 # ---------------------------------------------------------------- 常量
@@ -62,9 +71,12 @@ def save_config(config):
 def load_config():
     """读配置并确保存储后端可用（未配置时自动探测并初始化，结果写回 config.json）。"""
     if not CONFIG_PATH.exists():
-        die(f"配置文件不存在: {CONFIG_PATH}")
-    with open(CONFIG_PATH, encoding="utf-8") as f:
-        config = json.load(f)
+        # 全新环境：自动落空模板再走自动探测，首次运行零配置初始化
+        config = json.loads(json.dumps(DEFAULT_CONFIG))
+        save_config(config)
+    else:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            config = json.load(f)
     return ensure_backend(config)
 
 
@@ -463,7 +475,7 @@ def protein_multiplier(days_per_week):
     return 1.5
 
 
-def calc_macros(tier_weight, days_per_week, carb_mult=2.0):
+def calc_macros(tier_weight, days_per_week, carb_mult=3.0):
     """按当前档位体重算营养素（克）。碳水×2~3（新手3起步，适应后2）；蛋白按天数；脂肪×1。"""
     if tier_weight is None:
         return {"carb_g": None, "protein_g": None, "fat_g": None}
