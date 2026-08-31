@@ -112,8 +112,8 @@ def main():
     p_set.add_argument("fields", nargs="*", help="列名=值（可多个）")
 
     p_macros = sub.add_parser("macros")
-    p_macros.add_argument("--carb-mult", type=float, default=2.0,
-                          help="碳水倍数，新手3 / 适应后2，默认2")
+    p_macros.add_argument("--carb-mult", type=float, default=3.0,
+                          help="碳水倍数，新手3 / 适应后2，默认3")
 
     args = ap.parse_args()
     config = load_config()
