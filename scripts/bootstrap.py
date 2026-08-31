@@ -57,7 +57,7 @@ def main():
     p_init = sub.add_parser("init")
     p_init.add_argument("--backend", choices=["local", "feishu"],
                         help="不指定则自动探测（本地优先）")
-    p_init.add_argument("--path", help="backend=local 时 xlsx 路径（默认 skill/data/ 下）")
+    p_init.add_argument("--path", help="backend=local 时 xlsx 路径（默认 skill 目录旁的 减脂数据/ 下）")
     p_init.add_argument("--url", help="backend=feishu 时飞书表格 URL")
     args = ap.parse_args()
     {"status": cmd_status, "init": cmd_init}[args.cmd](args)
