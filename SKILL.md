@@ -1,10 +1,10 @@
 ---
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
-version: 2.1.1
 metadata:
+  version: 2.1.2
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
-  platforms: [doubao]
+  platforms: [doubao, qianwen]
 ---
 
 # 个人减脂追踪私教
