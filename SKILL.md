@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.2.5
+  version: 2.2.6
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -238,5 +238,5 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
    - 第 2 批（update）：profile.py + record.py + plan.py
    - 第 3 批（update）：storage.py + bootstrap.py
 5. **版本号陷阱**：create/update 响应里的 revision 不能直接用于下一次提交——平台写入时会归一化（去文件末尾换行，每个文件 size-1），真实版本号写入后才定。每次提交前用 **inspect 不带技能名**重拿版本号（带名字会返回全部文件内容，输出超长还没用）
-6. **注册成功 ≠ 运行成功**：`loaded: true` 后必须从平台实际落盘的技能目录跑 `python3 -B scripts/profile.py get`，确认 ok:true 且 xlsx 建在 `减脂数据/`。报"未找到可用存储后端"时先 `pip install openpyxl`；v2.2.1 起脚本会自动逐级回落数据目录（技能上溯两级 → 当前目录 → 家目录），正常无需手改 config。**提交前注意**：本地跑过的 config.json 已含真实路径，注册包里的 config.json 必须用仓库空模板内容，不能交本地那份
+6. **注册成功 ≠ 运行成功**：`loaded: true` 后必须从平台实际落盘的技能目录跑 `python3 -B scripts/profile.py get`，确认 ok:true 且 xlsx 建在 `减脂数据/`。**落盘位置实测就是 `workspace/skills/fat-loss-tracker/`，直接去此目录验证，不要全盘 find（2026-09-03 实测 find 两次白花 1 分钟）**。报"未找到可用存储后端"时先 `pip install openpyxl`；v2.2.1 起脚本会自动逐级回落数据目录（技能上溯两级 → 当前目录 → 家目录），正常无需手改 config。**提交前注意**：本地跑过的 config.json 已含真实路径，注册包里的 config.json 必须用仓库空模板内容，不能交本地那份
 7. **多技能副本导致数据分叉（2026-09-03 真机实测）**：数据目录按"技能目录上溯两级"推算——workspace 根的旧克隆和 skills/ 下的注册版会各算各的目录、各建一份表，档案"失踪"（实测两表并存：`/root/userdata/减脂数据/` 有档案、`workspace/减脂数据/` 是空表）。**注册前删掉 workspace 根的旧克隆目录**；注册后若 profile 为空但此前建过档，`find /root -name "减脂追踪数据.xlsx" 2>/dev/null` 找含档案的旧表，覆盖到注册版数据目录再验证
