@@ -50,7 +50,7 @@ git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git && mkdi
 - 启动检查返回 `profile: null` 即装好：首次运行自动在工作区 `减脂数据/` 建好电子表格（4 张子表），无需任何手动初始化
 - 依赖：Python 3.9+、openpyxl（缺了就 `pip install openpyxl`）；飞书后端可选，需本机 lark-cli
 - 装好后新开对话，明确说「**用 fat-loss-tracker 开始建档**」——本 skill 有触发白名单，必须显式点名才激活，只提"减肥/健身"不会触发
-- 放进 skills/ 后**本会话**即可用（自动发现）；千问对话间 workspace 不共享，**要跨对话使用必须按 SKILL.md §10 注册进「自定义技能」**（注册让技能跨对话；数据 xlsx 不在注册包内，跨对话的数据持久化需配飞书后端）
+- 放进 skills/ 后会话内即可用（自动发现）；要在千问 App「自定义技能」界面显示并跨对话使用，按 SKILL.md §10 注册（真机实测：注册后新开对话技能与档案数据都能读出，本地 xlsx 即可跨对话；若新对话档案变空，再配飞书后端做数据持久化兜底）
 
 ## 能力
 
