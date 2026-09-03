@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.2.2
+  version: 2.2.3
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -222,7 +222,7 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
 
 ## 10. 千问：装进「自定义技能」（用户要求时执行）
 
-**安装/更新（两平台通用）**：优先 **tarball**——`curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz` 解压出 `fat-loss-tracker-main/`（天然无 `.git`；不走 git 协议、无 pack 中断风险，两次真机 `git clone` 都先摔跤）→ `mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker`。curl 不可用才兜底 `git clone --depth 1`（完整 clone 必中断）→ 复制后**删 `.git`**（二进制 pack 触发注册审核拒绝）。数据在技能目录外 `减脂数据/`，重装不丢、自动接上。
+**安装/更新（两平台通用）**：优先 **tarball**——`curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz` 解压出 `fat-loss-tracker-main/`（天然无 `.git`；不走 git 协议、无 pack 中断风险，两次真机 `git clone` 都先摔跤）→ `mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker`。curl 不可用才兜底 `git clone --depth 1`（完整 clone 必中断）→ 复制后**删 `.git`**（二进制 pack 触发注册审核拒绝）。数据在技能目录外 `减脂数据/`，重装不丢、自动接上。**装完落位自查**：`ls skills/fat-loss-tracker/scripts/profile.py` 必须存在——只有 skills/（豆包 .user_skills/）下的技能会被自动发现，放 workspace 根＝"装好了但激活不了"的假成功（2026-09-03 真机踩过）。
 
 技能放 workspace/skills/ 后所有对话已可用（自动发现）。要在千问 App「自定义技能」界面显示，需正式注册，流程四步：inspect（查现有技能与配额，上限 20）→ 安全审核（发一次性令牌）→ commit（令牌 + 完整文件集 + 版本号）→ 成功标志 `loaded: true`。
 

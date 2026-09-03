@@ -19,6 +19,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 1. curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz（下载源码归档，解压出 fat-loss-tracker-main/，天然无 .git；失败就重试同一条命令，不要改用 git clone）
 2. mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker（豆包的目标目录是 .user_skills/）
 3. python3 -B skills/fat-loss-tracker/scripts/profile.py get 做启动检查，输出 JSON 且 ok:true 即装好（首次运行自动建表，数据在工作区 减脂数据/，重装不丢）；若提示缺 openpyxl，先 pip install openpyxl 再重跑这一步
+4. 落位自查：ls skills/fat-loss-tracker/scripts/profile.py 必须存在——技能只在 workspace/skills/（豆包 .user_skills/）下才会被自动发现，放在 workspace 根是"装好了但激活不了"的假成功
 装好后回我一句装好了，之后我说「用 fat-loss-tracker 开始建档」时会激活它。
 ```
 
@@ -45,6 +46,7 @@ git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git && mkdi
 ### 要点
 
 - 技能目录：千问 `workspace/skills/`，豆包 `workspace/.user_skills/`
+- **落位自查（防假成功）**：装完 `ls skills/fat-loss-tracker/scripts/profile.py` 必须存在——放 workspace 根不会被自动发现，等于白装；装完可新开对话点名测试激活
 - 启动检查返回 `profile: null` 即装好：首次运行自动在工作区 `减脂数据/` 建好电子表格（4 张子表），无需任何手动初始化
 - 依赖：Python 3.9+、openpyxl（缺了就 `pip install openpyxl`）；飞书后端可选，需本机 lark-cli
 - 装好后新开对话，明确说「**用 fat-loss-tracker 开始建档**」——本 skill 有触发白名单，必须显式点名才激活，只提"减肥/健身"不会触发
