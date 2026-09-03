@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.2.7
+  version: 2.2.8
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -40,7 +40,7 @@ python3 scripts/profile.py get
 ```bash
 python3 scripts/profile.py init '{"性别":"女","年龄":30,"身高cm":165,"当前体重kg":70,"初始体重kg":70,"目标体重kg":55,"每周训练天数":3,"训练日安排":"1,3,5","训练偏好":"健身房器械","活动量":"轻度","当前档位kg":65,"减重路径":"70→65→60→55","用户昵称":"东哥"}'
 ```
-营养素按当前档位算（公式见 §4），或用户自备目标直接写入碳水g/蛋白g/脂肪g。档案局部更新用：`python3 scripts/profile.py set AI称呼=教练 回复风格=专业`（列名=值，可多个，不要用位置参数传 JSON）。
+营养素按当前档位算（公式见 §4），或用户自备目标直接写入碳水g/蛋白g/脂肪g。档案局部更新用：`python3 scripts/profile.py set AI称呼=教练 回复风格=专业`（列名=值，可多个，不要用位置参数传 JSON）。**改目标体重不用手动同步路径**：`set 目标体重kg=X` 未显式给减重路径时自动按 初始→新目标 重算（响应里的 auto_recomputed 字段会标注）。
 
 **建档写入成功后，紧接着生成首周默认计划（填新手空白期，表格从"只有一行的空账本"变成"打开就有行动清单"）：**
 ```bash
@@ -222,7 +222,7 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
 
 ## 10. 千问：装进「自定义技能」（用户要求时执行）
 
-**安装/更新（两平台通用）**：优先 **tarball**——`curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz` 解压出 `fat-loss-tracker-main/`（天然无 `.git`；不走 git 协议、无 pack 中断风险，两次真机 `git clone` 都先摔跤）→ `mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker`。curl 不可用才兜底 `git clone --depth 1`（完整 clone 必中断）→ 复制后**删 `.git`**（二进制 pack 触发注册审核拒绝）。数据在技能目录外 `减脂数据/`，重装不丢、自动接上。**装完落位自查**：`ls skills/fat-loss-tracker/scripts/profile.py` 必须存在——只有 skills/（豆包 .user_skills/）下的技能会被自动发现，放 workspace 根＝"装好了但激活不了"的假成功（2026-09-03 真机踩过）。
+**安装/更新（两平台通用）**：优先 **tarball**——`curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz` 解压出 `fat-loss-tracker-main/`（天然无 `.git`；不走 git 协议、无 pack 中断风险，两次真机 `git clone` 都先摔跤）→ `mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main`（复制完必删解压残留——残留副本会另算数据目录导致档案分叉，2026-09-03 真机踩过）。curl 不可用才兜底 `git clone --depth 1`（完整 clone 必中断）→ 复制后**删 `.git` 与 clone 残留目录**（二进制 pack 触发注册审核拒绝）。数据在技能目录外 `减脂数据/`，重装不丢、自动接上。**装完落位自查**：`ls skills/fat-loss-tracker/scripts/profile.py` 必须存在——只有 skills/（豆包 .user_skills/）下的技能会被自动发现，放 workspace 根＝"装好了但激活不了"的假成功（2026-09-03 真机踩过）。
 
 技能放 workspace/skills/ 后会话内即可用（自动发现）。要跨对话使用并出现在千问 App「自定义技能」界面，需正式注册，流程四步：inspect（查现有技能与配额，上限 20）→ 安全审核（发一次性令牌）→ commit（令牌 + 完整文件集 + 版本号）→ 成功标志 `loaded: true`（2026-09-03 真机一次过）。**安装完成后主动告知用户：只有注册了的技能才在「自定义技能」界面显示、跨对话有保证，要长期用就说一声走注册流程**。数据持久化 2026-09-03 真机实测：注册后新开对话能读出前一对话建的完整档案（workspace 带了过去）——本地 xlsx 后端即可跨对话，暂不需要飞书；若日后新对话发现档案变空，再按「存储后端」配飞书表格做数据持久化兜底。
 

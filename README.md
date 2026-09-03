@@ -3,7 +3,7 @@
 一行装好（在 workspace 目录执行；豆包的技能目录是 `.user_skills/`，换一下复制目标即可）：
 
 ```bash
-curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz && mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && python3 -B skills/fat-loss-tracker/scripts/profile.py get
+curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz && mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main && python3 -B skills/fat-loss-tracker/scripts/profile.py get
 ```
 
 自托管的个人减脂助手：自然语言记录训练/饮食/体重，训练计划按渐进超负荷自动滚动，体重达标自动换档重算营养素，支持早安简报和三餐定时提醒。数据默认存本地 xlsx（零安装零授权），飞书表格为可选后端（老用户自动沿用）。
@@ -17,7 +17,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 ```text
 帮我安装 fat-loss-tracker 技能。在 workspace 目录按顺序执行：
 1. curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz（下载源码归档，解压出 fat-loss-tracker-main/，天然无 .git；失败就重试同一条命令，不要改用 git clone）
-2. mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker（豆包的目标目录是 .user_skills/）
+2. mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main（复制完立刻删掉解压残留目录——残留副本会另算数据目录、导致档案分叉；豆包的目标目录是 .user_skills/）
 3. python3 -B skills/fat-loss-tracker/scripts/profile.py get 做启动检查，输出 JSON 且 ok:true 即装好（首次运行自动建表，数据在工作区 减脂数据/，重装不丢）；若提示缺 openpyxl，先 pip install openpyxl 再重跑这一步
 4. 落位自查：ls skills/fat-loss-tracker/scripts/profile.py 必须存在——技能只在 workspace/skills/（豆包 .user_skills/）下才会被自动发现，放在 workspace 根是"装好了但激活不了"的假成功
 装好后回我一句装好了，之后我说「用 fat-loss-tracker 开始建档」时会激活它。
@@ -26,7 +26,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 更新——发这段：
 
 ```text
-帮我更新 fat-loss-tracker 技能：在 workspace 重新下载源码归档（curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz，解压出 fat-loss-tracker-main/），删掉旧的 skills/fat-loss-tracker 后用 fat-loss-tracker-main 覆盖（技能目录外的 减脂数据/ 是我的数据，不要动），最后跑 python3 -B skills/fat-loss-tracker/scripts/profile.py get 确认档案还在。
+帮我更新 fat-loss-tracker 技能：在 workspace 重新下载源码归档（curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz，解压出 fat-loss-tracker-main/），删掉旧的 skills/fat-loss-tracker 后用 fat-loss-tracker-main 覆盖，完事删掉 fat-loss-tracker-main 残留目录（技能目录外的 减脂数据/ 是我的数据，不要动），最后跑 python3 -B skills/fat-loss-tracker/scripts/profile.py get 确认档案还在。
 ```
 
 ### 方式二：手动命令行
@@ -34,7 +34,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 用文首的一行命令。curl 不可用的环境才用 git 兜底（**必须 `--depth 1`**，完整 clone 在云电脑必中断 `cannot pread pack file`；复制后删 `.git`——千问把 .git 算进技能包，二进制 pack 会触发注册审核拒绝）：
 
 ```bash
-git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git && mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker skills/ && rm -rf skills/fat-loss-tracker/.git && python3 -B skills/fat-loss-tracker/scripts/profile.py get
+git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git && mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker skills/ && rm -rf skills/fat-loss-tracker/.git fat-loss-tracker && python3 -B skills/fat-loss-tracker/scripts/profile.py get
 ```
 
 ### 为什么 tarball 优先、git 兜底

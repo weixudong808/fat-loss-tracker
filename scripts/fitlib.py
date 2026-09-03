@@ -463,7 +463,9 @@ def get_profile(config):
 
 
 def upsert_profile(config, fields):
-    """合并写回档案单行（第2行）。fields 中 None 不覆盖已有值。返回合并后的完整档案。"""
+    """合并写回档案单行（第2行）。显式传入的键即写入（含 None/"" = 清空），未传入的保持原值。
+    目标体重kg 被写入且未显式给 减重路径 时，自动按 初始→目标 每 5kg 重算路径
+    （防只改目标不改路径：路径停在旧目标，到档会被 advance_tier 误判为已到最终目标）。"""
     _, existing_rows = read_sheet(config, "用户档案", "U")
     if isinstance(existing_rows, dict) and not existing_rows.get("ok", True):
         return existing_rows
@@ -475,11 +477,34 @@ def upsert_profile(config, fields):
         if k not in PROFILE_COLS:
             return {"ok": False, "error": f"档案无此字段: {k}，合法字段：{PROFILE_COLS}"}
         current[k] = v  # 显式传入即写入（含 None/"" = 清空）；未传入的键保持原值
+    auto = {}
+    if "目标体重kg" in fields and "减重路径" not in fields:
+        try:
+            start, target = float(current.get("初始体重kg")), float(current.get("目标体重kg"))
+        except (TypeError, ValueError):
+            start = target = None
+        if start is not None and start > target:
+            tiers = build_tiers(start, target)
+            if tiers:
+                current["减重路径"] = "→".join(str(_fmt_weight(w)) for w in [start] + tiers)
+                auto["减重路径"] = current["减重路径"]
+                cur = current.get("当前档位kg")
+                try:
+                    in_path = cur is not None and any(
+                        abs(float(cur) - t) < 1e-9 for t in tiers)
+                except (TypeError, ValueError):
+                    in_path = False
+                if "当前档位kg" not in fields and not in_path:
+                    current["当前档位kg"] = tiers[0]
+                    auto["当前档位kg"] = tiers[0]
     values = [[current.get(k) for k in PROFILE_COLS]]
     r = set_cells(config, "用户档案", "A2:U2", values)
     if not r.get("ok"):
         return r
-    return {"ok": True, "profile": current}
+    resp = {"ok": True, "profile": current}
+    if auto:
+        resp["auto_recomputed"] = auto
+    return resp
 
 # ---------------------------------------------------------------- 阶梯减重 / 营养素
 def build_tiers(start_weight, target_weight, step=WEIGHT_STEP_KG):
