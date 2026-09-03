@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.2.0
+  version: 2.2.1
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -216,19 +216,26 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
 ```
 4. Token 获取：https://github.com/settings/tokens?type=beta → Fine-grained → 选 fat-loss-tracker → Contents 权限 Read and write
 
-详细步骤见同目录 `PUSH.md`。用户说"推一下/推送更新"时按此执行。
+详细步骤见 GitHub 仓库根目录的推送指南文档（不进千问注册包，见 §10）。用户说"推一下/推送更新"时按此执行。
 
 注意：仓库内 config.json 保持空模板（backend 为空、无个人 URL/cron id）；个人真实 config.json 不要覆盖上去。
 
 ## 10. 千问：装进「自定义技能」（用户要求时执行）
 
-**安装/更新（两平台通用）**：`git clone --depth 1`（云电脑完整 clone 常因传输中断失败）→ 复制 fat-loss-tracker 到技能目录 → **删掉 clone 带来的 `.git` 文件夹**（千问把 .git 算进技能包，其中二进制 pack 文件会触发注册审核拒绝；更新=重新 clone，用不到 .git）。
+**安装/更新（两平台通用）**：`git clone --depth 1`（云电脑完整 clone 常因传输中断失败）→ 复制 fat-loss-tracker 到技能目录 → **删掉 clone 带来的 `.git`**（其中二进制 pack 文件会触发注册审核拒绝；更新=重新 clone，用不到 .git）。
 
-技能放 workspace/skills/ 后所有对话已可用（自动发现）。用户想在千问 App「自定义技能」界面看到它，需正式注册。规则与顺序（严格按序，每步完成再做下一步）：
+技能放 workspace/skills/ 后所有对话已可用（自动发现）。要在千问 App「自定义技能」界面显示，需正式注册，流程四步：inspect（查现有技能与配额，上限 20）→ 安全审核（发一次性令牌）→ commit（令牌 + 完整文件集 + 版本号）→ 成功标志 `loaded: true`。
 
-1. **技能包内禁止任何二进制文件**——xlsx 和 `__pycache__/*.pyc` 都会被安全审核拒绝（"不可审查的可执行文件"）。注册前检查：
-   - v2.1.4 起数据默认建在工作区 `减脂数据/`（技能目录外），包内正常无 xlsx；若发现包内 `data/` 有 xlsx（老版本安装的），移到技能目录外并改 `scripts/config.json` 的 `local_path` 为新绝对路径，跑 `python3 -B scripts/profile.py get` 验证档案还在
-   - `rm -rf scripts/__pycache__`
-2. **验证/演示脚本一律加 `-B`**（如 `python3 -B scripts/profile.py get`），不生成缓存；清完缓存后不要再跑任何不带 -B 的脚本
-3. 查技能状态确认清单干净（无 xlsx/pyc）→ 发起安全审核 → **立即提交**：审核令牌有时效（过期报 safety_review_expired）；审核后再改文件会 revision_conflict（需重查状态拿新版本号、重新审核再提交）
-4. 成功标志 `loaded: true`（自定义技能 1/20 名额）
+**注册文件清单（9 个，约 79KB）**：SKILL.md、references/cron_prompts.md、scripts/ 下的 fitlib.py、profile.py、record.py、plan.py、storage.py、bootstrap.py、config.json（空模板）。仓库里其余 4 个纯开发者文件（推送指南、仓库说明、git 忽略配置、config 示例模板）**不进包**——剔除可减小提交载荷（提交是文件全文内联，包越小传得越快；SKILL.md 每次注册/更新都整篇重传，改它要克制篇幅）。⚠️包内文档只引用上面清单里的文件，别提不进包的文件名，否则可能触发引用完整性拒绝。
+
+**实测规则（2026-09-03 真机注册 5 次失败换来的，照做全程 10 分钟内，不照做 40 分钟起）：**
+
+1. **包内禁止二进制**：xlsx、`__pycache__/*.pyc` 都会被审核拒。数据在工作区 `减脂数据/`（包外），包内发现 xlsx 就移出去；验证/演示脚本一律加 `-B`，清完缓存后不跑任何不带 -B 的脚本
+2. **引用完整性检查**：包内文档提到的文件必须在包里（本清单已覆盖 SKILL.md 引用的 config.json、§6 引用的 cron_prompts.md、§8 引用的全部脚本）。照清单全给，别漏
+3. **令牌一次性**：任何一次提交尝试（含失败的）都烧掉令牌；15 分钟过期；跨对话轮次也失效。所以「审核 → 立即提交」一气呵成，中途不停顿、不等用户回复、不改文件；失败后重新审核拿新令牌再来
+4. **单次提交有载荷上限**（90KB/14 文件实测超限，精确值未测，有机会测一下记回这里）。先试 9 文件一次提交；被拒再分批，**依赖优先 + SKILL.md 引用的文件必须随 create 首批进包**：
+   - 第 1 批（create）：SKILL.md + references/cron_prompts.md + fitlib.py + config.json —— cron_prompts 是 SKILL.md 引用的资源、fitlib 是其余脚本的依赖，缺谁首批都是坑
+   - 第 2 批（update）：profile.py + record.py + plan.py
+   - 第 3 批（update）：storage.py + bootstrap.py
+5. **版本号陷阱**：create/update 响应里的 revision 不能直接用于下一次提交——平台写入时会归一化（去文件末尾换行，每个文件 size-1），真实版本号写入后才定。每次提交前用 **inspect 不带技能名**重拿版本号（带名字会返回全部文件内容，输出超长还没用）
+6. **注册成功 ≠ 运行成功**：`loaded: true` 后必须从平台实际落盘的技能目录跑 `python3 -B scripts/profile.py get`，确认 ok:true 且 xlsx 建在 `减脂数据/`。报"未找到可用存储后端"时先 `pip install openpyxl`；v2.2.1 起脚本会自动逐级回落数据目录（技能上溯两级 → 当前目录 → 家目录），正常无需手改 config

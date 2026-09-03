@@ -31,11 +31,10 @@ DEFAULT_CONFIG = {
     "sheet_ids": {"训练记录": "", "体重记录": "", "饮食记录": "", "用户档案": ""},
     "cron_job_ids": {},
 }
-# 数据表放工作区根的 减脂数据/（技能目录上溯两级：千问 workspace/skills/、豆包 workspace/.user_skills/
-# 标准安装位的两级上溯即工作区根）：千问正式注册禁止技能包内含二进制文件（xlsx 会被审核拒），
-# 更新技能（删目录重装）不碰数据，且用户在工作区可直接看到数据文件夹。
-# 注意：技能装在非标准位置（如 /tmp）时两级上溯不可写会探测失败并报错提示。老用户 config 的 local_path 优先。
-DEFAULT_XLSX = SKILL_DIR.parent.parent / "减脂数据" / "减脂追踪数据.xlsx"
+# 数据表默认放工作区根的 减脂数据/（技能目录上溯两级）：千问正式注册禁止技能包内含二进制文件
+# （xlsx 会被审核拒），更新技能（删目录重装）不碰数据，用户在工作区可直接看到数据文件夹。
+# 注册版技能落盘位置由平台控制、不一定是标准安装位，故按候选链逐级回落（见 default_local_xlsx）。
+# 老用户 config 里已写入的 local_path 永远优先。
 
 # ---------------------------------------------------------------- 常量
 # 用户档案表列顺序（单行配置：第1行表头，第2行数据）
@@ -118,8 +117,13 @@ def ensure_backend(config):
         save_config(config)
         return config
     # 自动探测：本地优先
-    if _openpyxl_available() and _dir_writable(DEFAULT_XLSX.parent):
-        return bootstrap_local(config, DEFAULT_XLSX)
+    if _openpyxl_available():
+        xlsx = default_local_xlsx()
+        if _dir_writable(xlsx.parent):
+            return bootstrap_local(config, xlsx)
+        die(f"openpyxl 可用但数据目录都不可写（试过: "
+            f"{'; '.join(str(d) for d in _local_data_dirs())}）；"
+            "请把 config.json 的 local_path 指到可写目录，或配置飞书表格 URL 走 feishu 后端")
     if shutil.which("lark-cli"):
         die("检测到 lark-cli 但未配置飞书表格：请在 config.json 填入 spreadsheet_url 后重试；"
             "或执行 pip install openpyxl 后删掉 backend 字段，自动启用本地表格")
@@ -145,6 +149,21 @@ def _dir_writable(d):
         return False
 
 
+def _local_data_dirs():
+    """数据目录候选（优先级序）：技能目录两级上溯（标准安装位=工作区根）→ 当前目录 → 家目录。"""
+    return [SKILL_DIR.parent.parent / "减脂数据",
+            Path.cwd() / "减脂数据",
+            Path.home() / "减脂数据"]
+
+
+def default_local_xlsx():
+    """自动探测默认数据文件：候选目录里第一个可写的；全不可写返回首选（由调用方报错）。"""
+    for d in _local_data_dirs():
+        if _dir_writable(d):
+            return d / "减脂追踪数据.xlsx"
+    return _local_data_dirs()[0] / "减脂追踪数据.xlsx"
+
+
 def detect_report():
     """供 bootstrap.py status：返回环境探测结果（不做任何修改）。"""
     return {
@@ -155,7 +174,7 @@ def detect_report():
         "openpyxl_available": _openpyxl_available(),
         "skill_dir_writable": _dir_writable(SKILL_DIR),
         "lark_cli_path": shutil.which("lark-cli"),
-        "default_local_path": str(DEFAULT_XLSX),
+        "default_local_path": str(default_local_xlsx()),
     }
 
 
@@ -194,7 +213,7 @@ def storage_info(config):
 
 
 def _local_path(config):
-    p = config.get("local_path") or str(DEFAULT_XLSX)
+    p = config.get("local_path") or str(default_local_xlsx())
     p = Path(p)
     return p if p.is_absolute() else (SCRIPT_DIR / p).resolve()
 
