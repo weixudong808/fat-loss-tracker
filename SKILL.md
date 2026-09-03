@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.2.4
+  version: 2.2.5
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -232,10 +232,11 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
 
 1. **包内禁止二进制**：xlsx、`__pycache__/*.pyc` 都会被审核拒。数据在工作区 `减脂数据/`（包外），包内发现 xlsx 就移出去；验证/演示脚本一律加 `-B`，清完缓存后不跑任何不带 -B 的脚本
 2. **引用完整性检查**：包内文档提到的文件必须在包里（本清单已覆盖 SKILL.md 引用的 config.json、§6 引用的 cron_prompts.md、§8 引用的全部脚本）。照清单全给，别漏
-3. **令牌一次性**：任何一次提交尝试（含失败的）都烧掉令牌；15 分钟过期；跨对话轮次也失效。所以「审核 → 立即提交」一气呵成，中途不停顿、不等用户回复、不改文件；失败后重新审核拿新令牌再来
-4. **单次提交有载荷上限**（90KB/14 文件实测超限，精确值未测，有机会测一下记回这里）。先试 9 文件一次提交；被拒再分批，**依赖优先 + SKILL.md 引用的文件必须随 create 首批进包**：
+3. **令牌一次性**：任何一次提交尝试（含失败的）都烧掉令牌；15 分钟过期；跨对话轮次也失效。**从读文件 → 审核 → 提交 → 运行验证，单回合一口气完成**——真机实测两个熄火点：读完全部文件后不要结束回合等用户（2026-09-03 在此白等 13 分钟），审核与提交之间更不能停；失败后重新审核拿新令牌再来
+4. **载荷上限实测（2026-09-03 真机）**：82KB/9 文件一次提交通过，90KB/14 文件超限——**按 9 文件清单直接一次提交，一发入魂**；分批仅作超限兜底（**依赖优先 + SKILL.md 引用的文件必须随 create 首批进包**）：
    - 第 1 批（create）：SKILL.md + references/cron_prompts.md + fitlib.py + config.json —— cron_prompts 是 SKILL.md 引用的资源、fitlib 是其余脚本的依赖，缺谁首批都是坑
    - 第 2 批（update）：profile.py + record.py + plan.py
    - 第 3 批（update）：storage.py + bootstrap.py
 5. **版本号陷阱**：create/update 响应里的 revision 不能直接用于下一次提交——平台写入时会归一化（去文件末尾换行，每个文件 size-1），真实版本号写入后才定。每次提交前用 **inspect 不带技能名**重拿版本号（带名字会返回全部文件内容，输出超长还没用）
-6. **注册成功 ≠ 运行成功**：`loaded: true` 后必须从平台实际落盘的技能目录跑 `python3 -B scripts/profile.py get`，确认 ok:true 且 xlsx 建在 `减脂数据/`。报"未找到可用存储后端"时先 `pip install openpyxl`；v2.2.1 起脚本会自动逐级回落数据目录（技能上溯两级 → 当前目录 → 家目录），正常无需手改 config
+6. **注册成功 ≠ 运行成功**：`loaded: true` 后必须从平台实际落盘的技能目录跑 `python3 -B scripts/profile.py get`，确认 ok:true 且 xlsx 建在 `减脂数据/`。报"未找到可用存储后端"时先 `pip install openpyxl`；v2.2.1 起脚本会自动逐级回落数据目录（技能上溯两级 → 当前目录 → 家目录），正常无需手改 config。**提交前注意**：本地跑过的 config.json 已含真实路径，注册包里的 config.json 必须用仓库空模板内容，不能交本地那份
+7. **多技能副本导致数据分叉（2026-09-03 真机实测）**：数据目录按"技能目录上溯两级"推算——workspace 根的旧克隆和 skills/ 下的注册版会各算各的目录、各建一份表，档案"失踪"（实测两表并存：`/root/userdata/减脂数据/` 有档案、`workspace/减脂数据/` 是空表）。**注册前删掉 workspace 根的旧克隆目录**；注册后若 profile 为空但此前建过档，`find /root -name "减脂追踪数据.xlsx" 2>/dev/null` 找含档案的旧表，覆盖到注册版数据目录再验证
