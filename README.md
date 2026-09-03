@@ -2,14 +2,32 @@
 
 自托管的个人减脂助手：自然语言记录训练/饮食/体重，训练计划按渐进超负荷自动滚动，体重达标自动换档重算营养素，支持早安简报和三餐定时提醒。数据默认存本地 xlsx（零安装零授权），飞书表格为可选后端（老用户自动沿用）。
 
-## ⚡ 快速安装（先看这里，按顺序执行）
+## ⚡ 快速安装（先看这里）
 
-在 workspace 目录下执行。**⚠️ 必须 `--depth 1` 浅克隆**：云电脑环境完整 clone 极易传输中断（`cannot pread pack file`），失败重试纯浪费时间：
+### 方式一：把这段话直接发给 AI（最快，AI 零探索直接执行）
+
+安装——把下面整段复制粘贴给千问/豆包：
+
+```text
+帮我安装 fat-loss-tracker 技能。在 workspace 目录按顺序执行：
+1. git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git（必须 --depth 1，云电脑完整 clone 易传输中断；失败就重试同一条命令）
+2. mkdir -p skills && cp -r fat-loss-tracker skills/ && rm -rf skills/fat-loss-tracker/.git（.git 里的二进制文件会触发千问注册审核拒绝，必须删；豆包的目标目录是 .user_skills/）
+3. python3 -B skills/fat-loss-tracker/scripts/profile.py get 做启动检查，输出 JSON 且 ok:true 即装好（首次运行自动建表，数据在工作区 减脂数据/）；若提示缺 openpyxl，先 pip install openpyxl 再重跑这一步
+装好后回我一句装好了，之后我说「用 fat-loss-tracker 开始建档」时会激活它。
+```
+
+更新——发这段：
+
+```text
+帮我更新 fat-loss-tracker 技能：在 workspace 重新 git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git，删掉旧的 skills/fat-loss-tracker 后用新目录覆盖（技能目录外的 减脂数据/ 是我的数据，不要动），删掉 skills/fat-loss-tracker/.git，最后跑 python3 -B skills/fat-loss-tracker/scripts/profile.py get 确认档案还在。
+```
+
+### 方式二：一行命令（手动或已有 shell 的环境）
+
+**⚠️ 必须 `--depth 1` 浅克隆**：云电脑环境完整 clone 极易传输中断（`cannot pread pack file`），失败重试纯浪费时间。
 
 ```bash
-git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git
-mkdir -p skills && cp -r fat-loss-tracker skills/ && rm -rf skills/fat-loss-tracker/.git
-python3 -B skills/fat-loss-tracker/scripts/profile.py get
+git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git && mkdir -p skills && cp -r fat-loss-tracker skills/ && rm -rf skills/fat-loss-tracker/.git && python3 -B skills/fat-loss-tracker/scripts/profile.py get
 ```
 
 要点：
