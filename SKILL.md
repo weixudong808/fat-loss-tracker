@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.1.4
+  version: 2.2.0
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -42,13 +42,21 @@ python3 scripts/profile.py init '{"性别":"女","年龄":30,"身高cm":165,"当
 ```
 营养素按当前档位算（公式见 §4），或用户自备目标直接写入碳水g/蛋白g/脂肪g。档案局部更新用：`python3 scripts/profile.py set AI称呼=教练 回复风格=专业`（列名=值，可多个，不要用位置参数传 JSON）。
 
+**建档写入成功后，紧接着生成首周默认计划（填新手空白期，表格从"只有一行的空账本"变成"打开就有行动清单"）：**
+```bash
+python3 scripts/plan.py init-plan
+```
+- 健身房 + 每周 2/3 练：自动按档案训练日排好整周计划（状态=待完成），首次实际反馈后渐进超负荷自动接管
+- 返回 `generated:false`（居家 / 其他训练天数）不算错误：按返回的 `reason` 话术兜底引导，不报错不停流程
+- 用户以后改训练日/训练天数，重跑一次即刷新排期（旧默认计划自动置已跳过，幂等）
+
 **建档完成后的固定动作序列（顺序执行，缺一不可，做完才进入下一步引导）：**
 1. 明确告知"建档成功"，报关键信息：当前档位、每日营养素目标（碳水/蛋白/脂肪克数）
 2. **主动发可查看的表格（不等用户要），下面 a、b 两件都要做，缺一不可：**
-   - a. 聊天框内渲染：`python3 scripts/storage.py dump --sheet 用户档案` 读出档案，渲染成**两列表格（字段|值）**——档案 21 列横排手机上没法看，必须转置。其余三张表（训练/体重/饮食）一句话说明已建好、之后记录自动写入
+   - a. 聊天框内渲染：`python3 scripts/storage.py dump --sheet 用户档案` 读出档案，渲染成**两列表格（字段|值）**——档案 21 列横排手机上没法看，必须转置。其余三张表一句话说明：训练表已含首周默认计划（generated:true 时）、体重/饮食表已建好，之后记录自动写入
    - b. **同时发 xlsx 文件附件**：发送前先把 xlsx 复制到工作目录（如 workspace/）并 chmod 644——数据文件在 skill 目录或 /tmp 时发送管线可能取不到（见 §7 发送坑）。只渲染不发附件 = 流程未完成，用户会追问
 3. 简述三条规则：训练报给我自动排下次计划；体重到档自动换克数；饮食按目标帮你核算
-4. 引导第一次录入（如"报条今天的训练试试"）
+4. 引导第一次训练（首周=校准周），转述 init-plan 返回的 message，大意："第一周计划已经在表格里了。这周是校准周：每个动作选一个能标准做完 15 个、最后两个有点吃力的重量，做多少记多少，报我之后按你的真实水平自动往后排。另外每天早上记得空腹称体重告诉我，吃了什么、练了什么随时报我来记，想看进度随时问「这周怎么样」"
 
 ## 2. 电子表格结构（4 张子表，训练计划并入训练记录）
 
@@ -112,6 +120,8 @@ python3 scripts/plan.py generate --theme 胸 [--date YYYY-MM-DD]
 python3 scripts/plan.py list [--date 2026-08-31] [--status 待完成] [--theme 腿]
 # 手动核销（训练录入已自动处理，一般不用）
 python3 scripts/plan.py complete --theme 腿
+# 建档后生成首周默认计划（幂等，改训练日/天数后重跑即刷新）
+python3 scripts/plan.py init-plan
 ```
 
 ### 3.5 查询统计 / 随时问答
@@ -183,7 +193,7 @@ Prompt 全文见 `references/cron_prompts.md`，创建/修改定时任务前必�
 |---|---|
 | scripts/record.py training/weight/diet | 三类录入（训练/体重带自动联动） |
 | scripts/profile.py get/init/set/macros | 档案读/建档/局部更新/按档重算营养素 |
-| scripts/plan.py generate/list/complete | 计划生成/查询/核销 |
+| scripts/plan.py generate/list/complete/init-plan | 计划生成/查询/核销/首周默认计划 |
 | scripts/storage.py dump/info | 统一查询入口（两种后端通用）/查看后端与数据位置 |
 | scripts/bootstrap.py status/init | 环境探测/后端初始化（正常无需手动跑，首次调用自动完成） |
 | scripts/fitlib.py | 公共库（双后端存储IO/进阶/档位/营养素），不直接执行业务 |

@@ -77,7 +77,9 @@ def link_training_plan(config, date, theme, exercises):
                         skipped.add(p["_row"])
         profile = fl.get_profile(config)
         after = datetime.strptime(date, "%Y-%m-%d").date()
-        next_d, scheduled = fl.next_training_date(profile or {}, after=after)
+        next_d, scheduled = fl.next_open_training_date(
+            profile or {}, after=after,
+            busy_rows=rows_all if isinstance(rows_all, list) else [])
         next_date = next_d.strftime("%Y-%m-%d")
         dup = False
         if isinstance(rows_all, list):
@@ -191,12 +193,22 @@ def record_diet(config, args):
 
 def infer_theme(exercises):
     """根据动作推断训练主题。"""
+    # 整堂课匹配默认计划模板优先：上肢/下肢等混合主题靠单动作关键词推不出来
+    names = [str(ex.get("name", "")).strip() for ex in exercises]
+    best, best_hits = None, 0
+    for tpl in fl.DEFAULT_PLAN_TEMPLATES.values():
+        for theme, moves in tpl.items():
+            hits = sum(1 for n in names if n in moves)
+            if hits > best_hits:
+                best, best_hits = theme, hits
+    if best_hits >= 2:
+        return best
     theme_map = {
-        "胸": ["卧推", "夹胸", "飞鸟", "双杠臂屈伸", "俯卧撑"],
-        "背": ["引体", "高位下拉", "划船", "硬拉"],
+        "胸": ["卧推", "推胸", "夹胸", "飞鸟", "双杠臂屈伸", "俯卧撑"],
+        "背": ["引体", "高位下拉", "划船", "硬拉", "直臂下压"],
         "腿": ["深蹲", "腿举", "腿弯举", "腿屈伸", "箭步蹲", "臀桥"],
-        "肩": ["推肩", "侧平举", "前平举", "反向飞鸟"],
-        "手臂": ["弯举", "三头下压", "臂屈伸"],
+        "肩": ["推肩", "肩推", "侧平举", "前平举", "反向飞鸟"],
+        "手臂": ["弯举", "三头下压", "下压", "臂屈伸"],
         "核心": ["平板支撑", "卷腹", "俄罗斯转体", "悬垂举腿"],
         "有氧": ["跑步", "椭圆机", "骑车", "跳绳", "游泳", "动感单车", "快走", "瑜伽", "跳操", "波比跳"],
     }

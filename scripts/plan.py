@@ -13,13 +13,17 @@
   python3 plan.py list [--date 2026-08-31] [--status 待完成] [--theme 腿]
   # 标记完成（录训练时已自动处理，一般不用手动调）
   python3 plan.py complete --theme 腿
+  # 建档后生成首周默认计划（健身房 2/3 练；幂等可重跑刷新排期）
+  python3 plan.py init-plan
 """
 import argparse
 import json
+from datetime import date, timedelta
 
-from fitlib import (TRAIN_COLS, append_rows, get_profile, load_config,
-                    next_progression, next_training_date, out, read_sheet,
-                    set_cells, today_str)
+from fitlib import (DEFAULT_PLAN_NOTE, DEFAULT_PLAN_TEMPLATES, TRAIN_COLS,
+                    append_rows, get_profile, load_config, next_progression,
+                    next_training_date, out, parse_training_days, read_sheet,
+                    set_cells, storage_info, today_str)
 
 SHEET = "训练记录"
 
@@ -118,6 +122,85 @@ def cmd_list(config, args):
     out({"ok": True, "count": len(result), "plans": result})
 
 
+def schedule_dates(profile, start, n):
+    """从 start(含)起按档案训练日安排取 n 个训练日期；未配置训练日则从明天起隔天排。
+    返回 (dates, scheduled_by_profile)。"""
+    days = parse_training_days((profile or {}).get("训练日安排"))
+    dates = []
+    if not days:
+        d = start + timedelta(days=1)
+        while len(dates) < n:
+            dates.append(d)
+            d += timedelta(days=2)
+        return dates, False
+    d = start
+    while len(dates) < n:
+        if d.isoweekday() in days:
+            dates.append(d)
+        d += timedelta(days=1)
+    return dates, True
+
+
+def cmd_init_plan(config, args):
+    """建档后生成首周默认计划（issue #2 v1）：填新手"表格只有一行空白"的断档期。
+    首周=校准周（4×15、重量 0），首次实际反馈后渐进超负荷自动接管。
+    幂等：旧的首周默认计划（待完成）先置已跳过再写新行，重跑即刷新排期。"""
+    profile = get_profile(config)
+    if isinstance(profile, dict) and not profile.get("ok", True):
+        out(profile)
+    if not profile:
+        out({"ok": False, "error": "尚未建档，请先运行 profile.py init"})
+
+    if "居家" in str(profile.get("训练偏好") or ""):
+        out({"ok": True, "generated": False,
+             "reason": "居家模板下一期提供；先按通用起步计划引导（深蹲3×15、俯卧撑3×10、臀桥3×15、平板支撑3×30秒），"
+                       "用户练完报数据即自动进入渐进超负荷循环"})
+    try:
+        days_per_week = int(profile.get("每周训练天数") or 0)
+    except (TypeError, ValueError):
+        days_per_week = 0
+    templates = DEFAULT_PLAN_TEMPLATES.get(days_per_week)
+    if not templates:
+        out({"ok": True, "generated": False,
+             "reason": f"暂无每周{days_per_week}练的默认模板（下期补全）；按 SKILL.md §6 五练分化建议引导"})
+
+    themes = list(templates.keys())
+    dates, scheduled = schedule_dates(profile, date.today(), len(themes))
+
+    _, all_rows = read_sheet(config, SHEET, "H")
+    if isinstance(all_rows, dict):
+        out(all_rows)
+    skipped = []
+    for p in all_rows:
+        if (str(p.get("状态") or "").strip() == "待完成"
+                and DEFAULT_PLAN_NOTE in str(p.get("备注") or "")):
+            r = set_cells(config, SHEET, f"H{p['_row']}", [["已跳过"]])
+            if r.get("ok"):
+                skipped.append(p["_row"])
+
+    rows, summary = [], []
+    for d, theme in zip(dates, themes):
+        moves = templates[theme]
+        for name in moves:
+            rows.append([d.strftime("%Y-%m-%d"), theme, name, 4, 15, 0,
+                         DEFAULT_PLAN_NOTE, "待完成"])
+        summary.append({"date": d.strftime("%Y-%m-%d"), "theme": theme,
+                        "exercises": moves})
+    r = append_rows(
+        config, SHEET, TRAIN_COLS,
+        {"日期": "datetime64[ns]", "组数": "float64", "次数": "float64", "重量kg": "float64"},
+        {"日期": "yyyy-mm-dd"}, rows)
+    if not r.get("ok"):
+        out(r)
+    resp = {"ok": True, "generated": True, "action": "init-plan",
+            "scheduled_by_profile": scheduled, "appended": len(rows),
+            "skipped_old_rows": skipped, "plan": summary,
+            "message": "首周是校准周：每个动作选一个能标准做完15个、最后两个有点吃力的重量，"
+                       "做多少记多少，报给 AI 后按真实水平自动往后排"}
+    resp.update(storage_info(config))
+    out(resp)
+
+
 def cmd_complete(config, args):
     _, rows = read_sheet(config, SHEET, "H")
     if isinstance(rows, dict):
@@ -156,9 +239,12 @@ def main():
     p_done.add_argument("--theme", required=True)
     p_done.add_argument("--date", help="默认今天")
 
+    p_init = sub.add_parser("init-plan", help="建档后生成首周默认计划")
+
     args = ap.parse_args()
     config = load_config()
-    {"generate": cmd_generate, "list": cmd_list, "complete": cmd_complete}[args.cmd](config, args)
+    {"generate": cmd_generate, "list": cmd_list, "complete": cmd_complete,
+     "init-plan": cmd_init_plan}[args.cmd](config, args)
 
 
 if __name__ == "__main__":

@@ -55,6 +55,17 @@ PLAN_COLS = TRAIN_COLS  # 兼容旧引用
 PLAN_STATUSES = ["待完成", "已完成", "已跳过"]
 REP_LADDER = [10, 12, 15]  # 渐进超负荷次数阶梯
 WEIGHT_STEP_KG = 5         # 阶梯式减重：每 5kg 一档
+# 建档首周默认计划（健身房 2/3 练；首周=校准周：4×15、重量留 0 由用户实测校准）。
+# 主题沿用单部位词表（胸/背/腿），与 infer_theme / link_training_plan 的主题精确匹配联动兼容；
+# 上肢/下肢 为 2 练混合主题，靠 record.py 的整堂课模板匹配推断。
+DEFAULT_PLAN_TEMPLATES = {
+    3: {"胸": ["坐姿推胸", "哑铃肩推", "器械夹胸", "绳索下压"],
+        "背": ["高位下拉", "坐姿划船", "直臂下压", "哑铃弯举"],
+        "腿": ["腿举", "腿弯举", "腿屈伸", "臀桥"]},
+    2: {"上肢": ["坐姿推胸", "高位下拉", "哑铃肩推", "坐姿划船"],
+        "下肢": ["腿举", "腿弯举", "臀桥", "箭步蹲"]},
+}
+DEFAULT_PLAN_NOTE = "首周默认计划·校准周"
 # 本地工作簿四张工作表的表头
 SHEET_HEADERS = {
     "训练记录": TRAIN_COLS,
@@ -315,8 +326,8 @@ def _local_set_cells(config, sheet_name, a1_range, values_2d):
     min_col, min_row, max_col, max_row = range_boundaries(a1_range)
     for i, row in enumerate(values_2d):
         for j, v in enumerate(row):
-            ws.cell(row=min_row + i, column=min_col + j,
-                    value=None if v is None else v)
+            # openpyxl 的 cell(value=None) 是"不设置"，必须显式赋值 None 才能清空旧值
+            ws.cell(row=min_row + i, column=min_col + j).value = v
     _atomic_save(wb, path)
     wb.close()
     return {"ok": True, "updated_range": a1_range}
@@ -567,6 +578,22 @@ def next_training_date(profile, after=None):
             return d, True
         d += timedelta(days=1)
     return after + timedelta(days=1), False
+
+
+def next_open_training_date(profile, after, busy_rows, max_advance=6):
+    """第一个没有待完成计划的训练日（首周默认计划按主题轮转占位后，
+    下次同主题计划要跳过已占用的训练日，避免一天两份计划）。
+    busy_rows：训练记录全量行；连续 max_advance 个训练日全满则退回第一个（原行为）。"""
+    booked = {str(p.get("日期") or "") for p in busy_rows
+              if isinstance(p, dict) and str(p.get("状态") or "").strip() == "待完成"}
+    d, fallback = after, None
+    for _ in range(max_advance):
+        d, scheduled = next_training_date(profile, after=d)
+        if fallback is None:
+            fallback = (d, scheduled)
+        if d.strftime("%Y-%m-%d") not in booked:
+            return d, scheduled
+    return fallback
 
 
 def today_str():
