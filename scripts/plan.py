@@ -162,7 +162,8 @@ def cmd_init_plan(config, args):
     templates = DEFAULT_PLAN_TEMPLATES.get(days_per_week)
     if not templates:
         out({"ok": True, "generated": False,
-             "reason": f"暂无每周{days_per_week}练的默认模板（下期补全）；按 SKILL.md §6 五练分化建议引导"})
+             "reason": f"每周{days_per_week}练超出默认模板范围（支持 1-6 练）；请确认训练天数，"
+                       "或按分化建议引导用户手动排期"})
 
     themes = list(templates.keys())
     dates, scheduled = schedule_dates(profile, date.today(), len(themes))
