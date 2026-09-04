@@ -20,7 +20,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 2. mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main（复制完立刻删掉解压残留目录——残留副本会另算数据目录、导致档案分叉；豆包的目标目录是 .user_skills/）
 3. python3 -B skills/fat-loss-tracker/scripts/profile.py get 做启动检查，输出 JSON 且 ok:true 即装好（首次运行自动建表，数据在工作区 减脂数据/，重装不丢）；若提示缺 openpyxl，先 pip install openpyxl 再重跑这一步
 4. 落位自查：ls skills/fat-loss-tracker/scripts/profile.py 必须存在——技能只在 workspace/skills/（豆包 .user_skills/）下才会被自动发现，放在 workspace 根是"装好了但激活不了"的假成功
-装好后回我一句装好了，之后我说「用 fat-loss-tracker 开始建档」时会激活它（建档完成后 AI 会另行征询是否注册进「自定义技能」，安装时不用问）。
+装好后回我一句：装好了。都准备好了吗？你说开始，我们就开始建档。（建档完成后 AI 会另行征询是否注册进「自定义技能」，安装时不用问。）
 ```
 
 更新——发这段：
