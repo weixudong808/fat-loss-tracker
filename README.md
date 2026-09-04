@@ -20,7 +20,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 2. mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main（复制完立刻删掉解压残留目录——残留副本会另算数据目录、导致档案分叉；豆包的目标目录是 .user_skills/）
 3. python3 -B skills/fat-loss-tracker/scripts/profile.py get 做启动检查，输出 JSON 且 ok:true 即装好（首次运行自动建表，数据在工作区 减脂数据/，重装不丢）；若提示缺 openpyxl，先 pip install openpyxl 再重跑这一步
 4. 落位自查：ls skills/fat-loss-tracker/scripts/profile.py 必须存在——技能只在 workspace/skills/（豆包 .user_skills/）下才会被自动发现，放在 workspace 根是"装好了但激活不了"的假成功
-装好后回我一句装好了，之后我说「用 fat-loss-tracker 开始建档」时会激活它。
+装好后回我两件事：①装好了，之后我说「用 fat-loss-tracker 开始建档」时会激活它；②提醒我：这个技能注册进千问「自定义技能」才能跨对话用，不注册换个对话可能就找不到技能和档案了，想注册说一声。
 ```
 
 更新——发这段：
@@ -50,7 +50,7 @@ git clone --depth 1 https://github.com/weixudong808/fat-loss-tracker.git && mkdi
 - 启动检查返回 `profile: null` 即装好：首次运行自动在工作区 `减脂数据/` 建好电子表格（4 张子表），无需任何手动初始化
 - 依赖：Python 3.9+、openpyxl（缺了就 `pip install openpyxl`）；飞书后端可选，需本机 lark-cli
 - 装好后新开对话，明确说「**用 fat-loss-tracker 开始建档**」——本 skill 有触发白名单，必须显式点名才激活，只提"减肥/健身"不会触发
-- 放进 skills/ 后会话内即可用（自动发现）；要在千问 App「自定义技能」界面显示并跨对话使用，按 SKILL.md §10 注册（真机实测：注册后新开对话技能与档案数据都能读出，本地 xlsx 即可跨对话；若新对话档案变空，再配飞书后端做数据持久化兜底）
+- 放进 skills/ 后会话内即可用（自动发现）；要在千问 App「自定义技能」界面显示并跨对话使用，按 SKILL.md §10 注册（真机实测：注册后新开对话技能与档案数据都能读出，本地 xlsx 即可跨对话；若新对话档案变空，再配飞书后端做数据持久化兜底）——**AI 装完/建档完必须主动提醒用户这一条，不能等用户问**
 
 ## 能力
 
