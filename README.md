@@ -28,7 +28,7 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 ```text
 帮我更新 fat-loss-tracker 技能，按两步走，别自由发挥：
 1. 本地更新（数据不动）：curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz && mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main && python3 -B skills/fat-loss-tracker/scripts/profile.py get —— 输出里我的档案必须还在
-2. 云端注册包更新（还没注册过就跳过这步）：按技能文档 §10 走 update——inspect 不带技能名拿最新版本号 → 安全审核 → 立即 update 提交全部 9 个文件（提交前逐文件核对行数与本地一致防截断；config.json 用空模板）→ 提交后抽查落盘文件行数、再跑一次 profile.py get 确认档案还在。全程单回合一口气，减脂数据/ 绝对不碰。
+2. 云端注册包更新（还没注册过就跳过这步）：本轮变更文件：{这里填清单，如 SKILL.md、scripts/fitlib.py；拿不准就写"全量"}。按技能文档 §10 走 update——inspect 不带技能名拿最新版本号 → 安全审核 → 立即 update 提交（清单明确就只交清单内文件，其余不动；清单是"全量"或拿不准就交全部 9 个文件，防新旧混搭；提交前逐文件核对行数与本地一致防截断；config.json 用空模板）→ 提交后抽查落盘文件行数、再跑一次 profile.py get 确认档案还在。全程单回合一口气，减脂数据/ 绝对不碰。
 ```
 
 ### 方式二：手动命令行
