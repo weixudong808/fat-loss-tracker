@@ -2,7 +2,7 @@
 name: fat-loss-tracker
 description: "个人减脂追踪私教（测试版，仅显式点名时激活）。触发白名单（必须完全匹配，否则一律不加载本 skill）：用户明确说'开始测试 fat-loss-tracker'、'测试减脂追踪'，以'用 fat-loss-tracker …'开头的点名指令（如'用 fat-loss-tracker 开始建档''用 fat-loss-tracker 查档案'），或使用斜杠命令 /fat-loss-tracker。除上述外的任何消息——包括提到健身、减脂、体重、训练、饮食、打卡、计划——均不激活本 skill（那些场景由其他 skill 处理）。激活后能力：档案 + 训练/饮食/体重记录到电子表格（本地 xlsx 优先、飞书兜底）+ 渐进超负荷计划自动生成 + 体重达标换档重算营养素 + 早安简报/三餐提醒 + 数据问答。"
 metadata:
-  version: 2.3.1
+  version: 2.3.2
   tags: [fitness, fat-loss, tracking, personal, xlsx, feishu, sheets, cron]
   platforms: [doubao, qianwen]
 ---
@@ -142,6 +142,7 @@ python3 scripts/storage.py dump --sheet 训练记录 [--range A1:H200]
 3. **渐进超负荷**：次数 10→12→15；到15后重量+5%、次数降回10，循环。重量按器械实际片重取整（脚本给算法值，转述时可提示就近取整）。
 4. **阶段联动**：体重达标自动进档+重算营养素（脚本自动完成，见 3.2）。
 5. **数字只信两个来源**：用户当次说的、表格里读的；算不出来就说缺数据，不编。
+6. **删除/清空/重置必须二次确认**：用户要求删数据、清空档案、重置技能、卸载等破坏性操作时，先复述后果并确认真实意图（如"这会把你的档案、计划、全部记录清空且无法恢复，你是要彻底重来吗？"）——防误触；用户明确同意后才执行。
 
 ## 5. 训练主题 / 餐次推断
 
@@ -222,9 +223,11 @@ git push https://x-access-token:<GitHub_TOKEN>@github.com/weixudong808/fat-loss-
 
 **安装/更新（两平台通用）**：优先 **tarball**——`curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz` 解压出 `fat-loss-tracker-main/`（天然无 `.git`；不走 git 协议、无 pack 中断风险，两次真机 `git clone` 都先摔跤）→ `mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main`（复制完必删解压残留——残留副本会另算数据目录导致档案分叉，2026-09-03 真机踩过）。curl 不可用才兜底 `git clone --depth 1`（完整 clone 必中断）→ 复制后**删 `.git` 与 clone 残留目录**（二进制 pack 触发注册审核拒绝）。数据在技能目录外 `减脂数据/`，重装不丢、自动接上。**装完落位自查**：`ls skills/fat-loss-tracker/scripts/profile.py` 必须存在——只有 skills/（豆包 .user_skills/）下的技能会被自动发现，放 workspace 根＝"装好了但激活不了"的假成功（2026-09-03 真机踩过）。
 
+**更新已注册技能（日常迭代用，不碰数据，实测约 3~5 分钟）**：本地先用上面的 tarball 命令覆盖安装（`减脂数据/` 不动）并跑 `profile.py get` 确认档案还在 → inspect（不带技能名）拿最新版本号 → 安全审核拿令牌 → **立即** commit（update 模式）提交 9 文件全量（update 只替换提交的文件、保留其余；载荷 82KB/9 文件实测通过；变更少时只交变更文件更快）→ 按规则 8 抽查落盘文件行数 + 再跑 `profile.py get` 复验档案。全程单回合一口气，数据文件绝对不碰。更新 ≠ 重建：**永远不要为了更新去删数据或删技能重注册**。
+
 技能放 workspace/skills/ 后会话内即可用（自动发现）。要跨对话使用并出现在千问 App「自定义技能」界面，需正式注册，流程四步：inspect（查现有技能与配额，上限 20）→ 安全审核（发一次性令牌）→ commit（令牌 + 完整文件集 + 版本号）→ 成功标志 `loaded: true`（2026-09-03 真机一次过）。**注册征询时机固定在建档完成后（§1 建档固定动作第 4 步的固定口径，用户同意才走），装机时不提——首装要快**。数据持久化 2026-09-03 真机实测：注册后新开对话能读出前一对话建的完整档案（workspace 带了过去）——本地 xlsx 后端即可跨对话，暂不需要飞书；若日后新对话发现档案变空，再按「存储后端」配飞书表格做数据持久化兜底。
 
-**注册文件清单（9 个，约 79KB）**：SKILL.md、references/cron_prompts.md、scripts/ 下的 fitlib.py、profile.py、record.py、plan.py、storage.py、bootstrap.py、config.json（空模板）。仓库里其余 4 个纯开发者文件（推送指南、仓库说明、git 忽略配置、config 示例模板）**不进包**——剔除可减小提交载荷（提交是文件全文内联，包越小传得越快；SKILL.md 每次注册/更新都整篇重传，改它要克制篇幅）。⚠️包内文档只引用上面清单里的文件，别提不进包的文件名，否则可能触发引用完整性拒绝。
+**注册文件清单（9 个，约 79KB）**：SKILL.md、references/cron_prompts.md、scripts/ 下的 fitlib.py、profile.py、record.py、plan.py、storage.py、bootstrap.py、config.json（空模板）。仓库里其余纯开发者文件（推送指南、仓库说明、git 忽略配置、config 示例模板、测试重置指南，共 5 个）**不进包**——剔除可减小提交载荷（提交是文件全文内联，包越小传得越快；SKILL.md 每次注册/更新都整篇重传，改它要克制篇幅）。⚠️包内文档只引用上面清单里的文件，别提不进包的文件名，否则可能触发引用完整性拒绝。
 
 **实测规则（2026-09-03 真机注册 5 次失败换来的，照做全程 10 分钟内，不照做 40 分钟起）：**
 

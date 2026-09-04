@@ -26,7 +26,9 @@ curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/m
 更新——发这段：
 
 ```text
-帮我更新 fat-loss-tracker 技能：在 workspace 重新下载源码归档（curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz，解压出 fat-loss-tracker-main/），删掉旧的 skills/fat-loss-tracker 后用 fat-loss-tracker-main 覆盖，完事删掉 fat-loss-tracker-main 残留目录（技能目录外的 减脂数据/ 是我的数据，不要动），最后跑 python3 -B skills/fat-loss-tracker/scripts/profile.py get 确认档案还在。
+帮我更新 fat-loss-tracker 技能，按两步走，别自由发挥：
+1. 本地更新（数据不动）：curl -fsSL https://github.com/weixudong808/fat-loss-tracker/archive/refs/heads/main.tar.gz | tar xz && mkdir -p skills && rm -rf skills/fat-loss-tracker && cp -r fat-loss-tracker-main skills/fat-loss-tracker && rm -rf fat-loss-tracker-main && python3 -B skills/fat-loss-tracker/scripts/profile.py get —— 输出里我的档案必须还在
+2. 云端注册包更新（还没注册过就跳过这步）：按技能文档 §10 走 update——inspect 不带技能名拿最新版本号 → 安全审核 → 立即 update 提交全部 9 个文件（提交前逐文件核对行数与本地一致防截断；config.json 用空模板）→ 提交后抽查落盘文件行数、再跑一次 profile.py get 确认档案还在。全程单回合一口气，减脂数据/ 绝对不碰。
 ```
 
 ### 方式二：手动命令行
